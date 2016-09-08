@@ -26,9 +26,9 @@ func newBsd(c config.ServerInfo) *bsd {
 func detectFreebsd(c config.ServerInfo) (itsMe bool, bsd osTypeInterface) {
 	bsd = newBsd(c)
 	c.Family = "FreeBSD"
-	if r := sshExec(c, "uname", noSudo); r.isSuccess() {
+	if r := execute(c, "uname", noSudo); r.isSuccess() {
 		if strings.Contains(r.Stdout, "FreeBSD") == true {
-			if b := sshExec(c, "uname -r", noSudo); b.isSuccess() {
+			if b := execute(c, "uname -r", noSudo); b.isSuccess() {
 				bsd.setDistributionInfo("FreeBSD", strings.TrimSpace(b.Stdout))
 				bsd.setServerInfo(c)
 				return true, bsd
@@ -73,7 +73,7 @@ func (o *bsd) scanPackages() error {
 
 func (o *bsd) scanInstalledPackages() ([]models.PackageInfo, error) {
 	cmd := util.PrependProxyEnv("pkg version -v")
-	r := o.ssh(cmd, noSudo)
+	r := o.execute(cmd, noSudo)
 	if !r.isSuccess() {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}
@@ -83,13 +83,13 @@ func (o *bsd) scanInstalledPackages() ([]models.PackageInfo, error) {
 func (o *bsd) scanUnsecurePackages() (cvePacksList []CvePacksInfo, err error) {
 	const vulndbPath = "/tmp/vuln.db"
 	cmd := "rm -f " + vulndbPath
-	r := o.ssh(cmd, noSudo)
+	r := o.execute(cmd, noSudo)
 	if !r.isSuccess(0) {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}
 
 	cmd = util.PrependProxyEnv("pkg audit -F -r -f " + vulndbPath)
-	r = o.ssh(cmd, noSudo)
+	r = o.execute(cmd, noSudo)
 	if !r.isSuccess(0, 1) {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}

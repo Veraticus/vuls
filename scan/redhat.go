@@ -50,18 +50,18 @@ func detectRedhat(c config.ServerInfo) (itsMe bool, red osTypeInterface) {
 	red = newRedhat(c)
 	red.setServerInfo(c)
 
-	if r := sshExec(c, "ls /etc/fedora-release", noSudo); r.isSuccess() {
+	if r := execute(c, "ls /etc/fedora-release", noSudo); r.isSuccess() {
 		red.setDistributionInfo("fedora", "unknown")
 		Log.Warn("Fedora not tested yet: %s", r)
 		return true, red
 	}
 
-	if r := sshExec(c, "ls /etc/redhat-release", noSudo); r.isSuccess() {
+	if r := execute(c, "ls /etc/redhat-release", noSudo); r.isSuccess() {
 		// https://www.rackaid.com/blog/how-to-determine-centos-or-red-hat-version/
 		// e.g.
 		// $ cat /etc/redhat-release
 		// CentOS release 6.5 (Final)
-		if r := sshExec(c, "cat /etc/redhat-release", noSudo); r.isSuccess() {
+		if r := execute(c, "cat /etc/redhat-release", noSudo); r.isSuccess() {
 			re := regexp.MustCompile(`(.*) release (\d[\d.]*)`)
 			result := re.FindStringSubmatch(strings.TrimSpace(r.Stdout))
 			if len(result) != 3 {
@@ -81,10 +81,10 @@ func detectRedhat(c config.ServerInfo) (itsMe bool, red osTypeInterface) {
 		return true, red
 	}
 
-	if r := sshExec(c, "ls /etc/system-release", noSudo); r.isSuccess() {
+	if r := execute(c, "ls /etc/system-release", noSudo); r.isSuccess() {
 		family := "amazon"
 		release := "unknown"
-		if r := sshExec(c, "cat /etc/system-release", noSudo); r.isSuccess() {
+		if r := execute(c, "cat /etc/system-release", noSudo); r.isSuccess() {
 			fields := strings.Fields(r.Stdout)
 			if len(fields) == 5 {
 				release = fields[4]
@@ -99,7 +99,7 @@ func detectRedhat(c config.ServerInfo) (itsMe bool, red osTypeInterface) {
 }
 
 func (o *redhat) checkIfSudoNoPasswd() error {
-	r := o.ssh("yum --version", o.sudo())
+	r := o.execute("yum --version", o.sudo())
 	if !r.isSuccess() {
 		o.log.Errorf("sudo error on %s", r)
 		return fmt.Errorf("Failed to sudo: %s", r)
@@ -141,14 +141,14 @@ func (o *redhat) installYumChangelog() error {
 		}
 
 		cmd := "rpm -q " + packName
-		if r := o.ssh(cmd, noSudo); r.isSuccess() {
+		if r := o.execute(cmd, noSudo); r.isSuccess() {
 			o.log.Infof("Ignored: %s already installed", packName)
 			return nil
 		}
 
 		o.log.Infof("Installing %s...", packName)
 		cmd = util.PrependProxyEnv("yum install -y " + packName)
-		if r := o.ssh(cmd, sudo); !r.isSuccess() {
+		if r := o.execute(cmd, sudo); !r.isSuccess() {
 			return fmt.Errorf("Failed to SSH: %s", r)
 		}
 		o.log.Infof("Installed: %s", packName)
@@ -175,7 +175,7 @@ func (o *redhat) checkRequiredPackagesInstalled() error {
 		}
 
 		cmd := "rpm -q " + packName
-		if r := o.ssh(cmd, noSudo); !r.isSuccess() {
+		if r := o.execute(cmd, noSudo); !r.isSuccess() {
 			msg := fmt.Sprintf("%s is not installed", packName)
 			o.log.Errorf(msg)
 			return fmt.Errorf(msg)
@@ -204,7 +204,7 @@ func (o *redhat) scanPackages() error {
 
 func (o *redhat) scanInstalledPackages() (installedPackages models.PackageInfoList, err error) {
 	cmd := "rpm -qa --queryformat '%{NAME}\t%{VERSION}\t%{RELEASE}\n'"
-	r := o.ssh(cmd, noSudo)
+	r := o.execute(cmd, noSudo)
 	if r.isSuccess() {
 		//  e.g.
 		// openssl	1.0.1e	30.el6.11
@@ -253,7 +253,7 @@ func (o *redhat) scanUnsecurePackages() ([]CvePacksInfo, error) {
 // For CentOS
 func (o *redhat) scanUnsecurePackagesUsingYumCheckUpdate() (CvePacksList, error) {
 	cmd := "LANG=en_US.UTF-8 yum --color=never check-update"
-	r := o.ssh(util.PrependProxyEnv(cmd), sudo)
+	r := o.execute(util.PrependProxyEnv(cmd), sudo)
 	if !r.isSuccess(0, 100) {
 		//returns an exit code of 100 if there are available updates.
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
@@ -552,7 +552,7 @@ func (o *redhat) getAllChangelog(packInfoList models.PackageInfoList) (stdout st
 	// yum update --changelog doesn't have --color option.
 	command += fmt.Sprintf(" LANG=en_US.UTF-8 yum update --changelog %s", packageNames)
 
-	r := o.ssh(command, sudo)
+	r := o.execute(command, sudo)
 	if !r.isSuccess(0, 1) {
 		return "", fmt.Errorf(
 			"Failed to get changelog. status: %d, stdout: %s, stderr: %s",
@@ -577,14 +577,14 @@ func (o *redhat) scanUnsecurePackagesUsingYumPluginSecurity() (CvePacksList, err
 	}
 
 	cmd := "yum --color=never repolist"
-	r := o.ssh(util.PrependProxyEnv(cmd), o.sudo())
+	r := o.execute(util.PrependProxyEnv(cmd), o.sudo())
 	if !r.isSuccess() {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}
 
 	// get advisoryID(RHSA, ALAS) - package name,version
 	cmd = "yum --color=never updateinfo list available --security"
-	r = o.ssh(util.PrependProxyEnv(cmd), o.sudo())
+	r = o.execute(util.PrependProxyEnv(cmd), o.sudo())
 	if !r.isSuccess() {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}
@@ -593,7 +593,7 @@ func (o *redhat) scanUnsecurePackagesUsingYumPluginSecurity() (CvePacksList, err
 	// get package name, version, rel to be upgrade.
 	//  cmd = "yum check-update --security"
 	cmd = "LANG=en_US.UTF-8 yum --color=never check-update"
-	r = o.ssh(util.PrependProxyEnv(cmd), o.sudo())
+	r = o.execute(util.PrependProxyEnv(cmd), o.sudo())
 	if !r.isSuccess(0, 100) {
 		//returns an exit code of 100 if there are available updates.
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
@@ -621,7 +621,7 @@ func (o *redhat) scanUnsecurePackagesUsingYumPluginSecurity() (CvePacksList, err
 
 	// get advisoryID(RHSA, ALAS) - CVE IDs
 	cmd = "yum --color=never updateinfo --security update"
-	r = o.ssh(util.PrependProxyEnv(cmd), o.sudo())
+	r = o.execute(util.PrependProxyEnv(cmd), o.sudo())
 	if !r.isSuccess() {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}

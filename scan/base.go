@@ -42,8 +42,8 @@ type base struct {
 	errs []error
 }
 
-func (l *base) ssh(cmd string, sudo bool) sshResult {
-	return sshExec(l.ServerInfo, cmd, sudo, l.log)
+func (l *base) execute(cmd string, sudo bool) sshResult {
+	return execute(l.ServerInfo, cmd, sudo, l.log)
 }
 
 func (l *base) setServerInfo(c config.ServerInfo) {
@@ -115,7 +115,7 @@ func (l *base) exitedContainers() (containers []config.Container, err error) {
 
 func (l *base) dockerPs(option string) (string, error) {
 	cmd := fmt.Sprintf("docker ps %s", option)
-	r := l.ssh(cmd, noSudo)
+	r := l.execute(cmd, noSudo)
 	if !r.isSuccess() {
 		return "", fmt.Errorf("Failed to SSH: %s", r)
 	}
@@ -161,9 +161,9 @@ func (l *base) detectPlatform() error {
 }
 
 func (l base) detectRunningOnAws() (ok bool, instanceID string, err error) {
-	if r := l.ssh("type curl", noSudo); r.isSuccess() {
+	if r := l.execute("type curl", noSudo); r.isSuccess() {
 		cmd := "curl --max-time 1 --retry 3 --noproxy 169.254.169.254 http://169.254.169.254/latest/meta-data/instance-id"
-		r := l.ssh(cmd, noSudo)
+		r := l.execute(cmd, noSudo)
 		if r.isSuccess() {
 			id := strings.TrimSpace(r.Stdout)
 			if !l.isAwsInstanceID(id) {
@@ -181,9 +181,9 @@ func (l base) detectRunningOnAws() (ok bool, instanceID string, err error) {
 		}
 	}
 
-	if r := l.ssh("type wget", noSudo); r.isSuccess() {
+	if r := l.execute("type wget", noSudo); r.isSuccess() {
 		cmd := "wget --tries=3 --timeout=1 --no-proxy -q -O - http://169.254.169.254/latest/meta-data/instance-id"
-		r := l.ssh(cmd, noSudo)
+		r := l.execute(cmd, noSudo)
 		if r.isSuccess() {
 			id := strings.TrimSpace(r.Stdout)
 			if !l.isAwsInstanceID(id) {

@@ -149,15 +149,50 @@ func parallelSSHExec(fn func(osTypeInterface) error, timeoutSec ...int) (errs []
 	return
 }
 
-func sshExec(c conf.ServerInfo, cmd string, sudo bool, log ...*logrus.Entry) (result sshResult) {
-	if isSSHExecNative() {
+func execute(c conf.ServerInfo, cmd string, sudo bool, log ...*logrus.Entry) (result sshResult) {
+	switch {
+	case c.IsLocal():
+		result = localExec(c, cmd, sudo)
+	case isSSHExecNative():
 		result = sshExecNative(c, cmd, sudo)
-	} else {
+	default:
 		result = sshExecExternal(c, cmd, sudo)
 	}
 
 	logger := getSSHLogger(log...)
 	logger.Debug(result)
+	return
+}
+
+func localExec(c conf.ServerInfo, cmd string, sudo bool) (result sshResult) {
+	result.Servername = c.ServerName
+	result.Host = c.Host
+	result.Port = c.Port
+
+	execCmd := exec.Command(cmd)
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	execCmd.Stdout = &stdoutBuf
+	execCmd.Stderr = &stderrBuf
+
+	if err := execCmd.Run(); err != nil {
+		if e, ok := err.(*exec.ExitError); ok {
+			if s, ok := e.Sys().(syscall.WaitStatus); ok {
+				result.ExitStatus = s.ExitStatus()
+			} else {
+				result.ExitStatus = 998
+			}
+		} else {
+			result.ExitStatus = 999
+		}
+	} else {
+		result.ExitStatus = 0
+	}
+
+	result.Stdout = stdoutBuf.String()
+	result.Stderr = stderrBuf.String()
+	result.Cmd = strings.Replace(cmd, "\n", "", -1)
+
 	return
 }
 

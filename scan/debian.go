@@ -48,7 +48,7 @@ func detectDebian(c config.ServerInfo) (itsMe bool, deb osTypeInterface, err err
 	deb = newDebian(c)
 	deb.setServerInfo(c)
 
-	if r := sshExec(c, "ls /etc/debian_version", noSudo); !r.isSuccess() {
+	if r := execute(c, "ls /etc/debian_version", noSudo); !r.isSuccess() {
 		if r.Error != nil {
 			return false, deb, r.Error
 		}
@@ -60,7 +60,7 @@ func detectDebian(c config.ServerInfo) (itsMe bool, deb osTypeInterface, err err
 		return false, deb, nil
 	}
 
-	if r := sshExec(c, "lsb_release -ir", noSudo); r.isSuccess() {
+	if r := execute(c, "lsb_release -ir", noSudo); r.isSuccess() {
 		//  e.g.
 		//  root@fa3ec524be43:/# lsb_release -ir
 		//  Distributor ID:	Ubuntu
@@ -79,7 +79,7 @@ func detectDebian(c config.ServerInfo) (itsMe bool, deb osTypeInterface, err err
 		return true, deb, nil
 	}
 
-	if r := sshExec(c, "cat /etc/lsb-release", noSudo); r.isSuccess() {
+	if r := execute(c, "cat /etc/lsb-release", noSudo); r.isSuccess() {
 		//  e.g.
 		//  DISTRIB_ID=Ubuntu
 		//  DISTRIB_RELEASE=14.04
@@ -100,7 +100,7 @@ func detectDebian(c config.ServerInfo) (itsMe bool, deb osTypeInterface, err err
 
 	// Debian
 	cmd := "cat /etc/debian_version"
-	if r := sshExec(c, cmd, noSudo); r.isSuccess() {
+	if r := execute(c, cmd, noSudo); r.isSuccess() {
 		deb.setDistributionInfo("debian", trim(r.Stdout))
 		return true, deb, nil
 	}
@@ -114,7 +114,7 @@ func trim(str string) string {
 }
 
 func (o *debian) checkIfSudoNoPasswd() error {
-	r := o.ssh("apt-get -v", sudo)
+	r := o.execute("apt-get -v", sudo)
 	if !r.isSuccess() {
 		o.log.Errorf("sudo error on %s", r)
 		return fmt.Errorf("Failed to sudo: %s", r)
@@ -127,7 +127,7 @@ func (o *debian) install() error {
 	// apt-get update
 	o.log.Infof("apt-get update...")
 	cmd := util.PrependProxyEnv("apt-get update")
-	if r := o.ssh(cmd, sudo); !r.isSuccess() {
+	if r := o.execute(cmd, sudo); !r.isSuccess() {
 		msg := fmt.Sprintf("Failed to SSH: %s", r)
 		o.log.Errorf(msg)
 		return fmt.Errorf(msg)
@@ -136,7 +136,7 @@ func (o *debian) install() error {
 	if o.Family == "debian" {
 		// install aptitude
 		cmd = util.PrependProxyEnv("apt-get install --force-yes -y aptitude")
-		if r := o.ssh(cmd, sudo); !r.isSuccess() {
+		if r := o.execute(cmd, sudo); !r.isSuccess() {
 			msg := fmt.Sprintf("Failed to SSH: %s", r)
 			o.log.Errorf(msg)
 			return fmt.Errorf(msg)
@@ -165,7 +165,7 @@ func (o *debian) scanPackages() error {
 }
 
 func (o *debian) scanInstalledPackages() (packs []models.PackageInfo, err error) {
-	r := o.ssh("dpkg-query -W", noSudo)
+	r := o.execute("dpkg-query -W", noSudo)
 	if !r.isSuccess() {
 		return packs, fmt.Errorf("Failed to SSH: %s", r)
 	}
@@ -209,7 +209,7 @@ func (o *debian) parseScannedPackagesLine(line string) (name, version string, er
 
 func (o *debian) checkRequiredPackagesInstalled() error {
 	if o.Family == "debian" {
-		if r := o.ssh("test -f /usr/bin/aptitude", noSudo); !r.isSuccess() {
+		if r := o.execute("test -f /usr/bin/aptitude", noSudo); !r.isSuccess() {
 			msg := fmt.Sprintf("aptitude is not installed: %s", r)
 			o.log.Errorf(msg)
 			return fmt.Errorf(msg)
@@ -222,7 +222,7 @@ func (o *debian) checkRequiredPackagesInstalled() error {
 func (o *debian) scanUnsecurePackages(packs []models.PackageInfo) ([]CvePacksInfo, error) {
 	//  cmd := prependProxyEnv(conf.HTTPProxy, "apt-get update | cat; echo 1")
 	cmd := util.PrependProxyEnv("apt-get update")
-	if r := o.ssh(cmd, sudo); !r.isSuccess() {
+	if r := o.execute(cmd, sudo); !r.isSuccess() {
 		return nil, fmt.Errorf("Failed to SSH: %s", r)
 	}
 
@@ -279,7 +279,7 @@ func (o *debian) fillCandidateVersion(packs []models.PackageInfo) ([]models.Pack
 			case pack := <-reqChan:
 				func(p models.PackageInfo) {
 					cmd := fmt.Sprintf("LANG=en_US.UTF-8 apt-cache policy %s", p.Name)
-					r := o.ssh(cmd, sudo)
+					r := o.execute(cmd, sudo)
 					if !r.isSuccess() {
 						errChan <- fmt.Errorf("Failed to SSH: %s.", r)
 						return
@@ -317,7 +317,7 @@ func (o *debian) fillCandidateVersion(packs []models.PackageInfo) ([]models.Pack
 
 func (o *debian) GetUpgradablePackNames() (packNames []string, err error) {
 	cmd := util.PrependProxyEnv("LANG=en_US.UTF-8 apt-get upgrade --dry-run")
-	r := o.ssh(cmd, sudo)
+	r := o.execute(cmd, sudo)
 	if r.isSuccess(0, 1) {
 		return o.parseAptGetUpgrade(r.Stdout)
 	}
@@ -469,7 +469,7 @@ func (o *debian) scanPackageCveIDs(pack models.PackageInfo) ([]string, error) {
 	}
 	cmd = util.PrependProxyEnv(cmd)
 
-	r := o.ssh(cmd, noSudo)
+	r := o.execute(cmd, noSudo)
 	if !r.isSuccess() {
 		o.log.Warnf("Failed to SSH: %s", r)
 		// Ignore this Error.

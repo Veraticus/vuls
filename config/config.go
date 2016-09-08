@@ -238,6 +238,11 @@ func (s ServerInfo) IsContainer() bool {
 	return 0 < len(s.Container.ContainerID)
 }
 
+// IsLocal checks whether this Server is the localhost
+func (s ServerInfo) IsLocal() bool {
+	return s.ServerName == "localhost" || s.ServerName == "127.0.0.1"
+}
+
 // SetContainer set container
 func (s *ServerInfo) SetContainer(d Container) {
 	s.Container = d
