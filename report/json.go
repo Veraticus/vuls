@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/models"
+	c "github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/models"
 )
 
 // JSONDirs array of json files path.

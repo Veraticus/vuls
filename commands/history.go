@@ -25,8 +25,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	c "github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/report"
+	c "github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/report"
 	"github.com/google/subcommands"
 	"golang.org/x/net/context"
 )

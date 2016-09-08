@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/cveapi"
-	"github.com/future-architect/vuls/models"
+	"github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/cveapi"
+	"github.com/Veraticus/vuls/models"
 )
 
 type base struct {

@@ -26,7 +26,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/rifflock/lfshook"
 
-	"github.com/future-architect/vuls/config"
+	"github.com/Veraticus/vuls/config"
 	formatter "github.com/kotakanbe/logrus-prefixed-formatter"
 )
 

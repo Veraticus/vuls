@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/models"
+	"github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/models"
 	"gopkg.in/gomail.v2"
 )
 

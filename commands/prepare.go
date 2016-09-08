@@ -23,9 +23,9 @@ import (
 	"path/filepath"
 
 	"github.com/Sirupsen/logrus"
-	c "github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/scan"
-	"github.com/future-architect/vuls/util"
+	c "github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/scan"
+	"github.com/Veraticus/vuls/util"
 	"github.com/google/subcommands"
 	"golang.org/x/net/context"
 )

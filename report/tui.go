@@ -26,8 +26,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/models"
+	"github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/models"
 	"github.com/google/subcommands"
 	"github.com/gosuri/uitable"
 	"github.com/jroimartin/gocui"

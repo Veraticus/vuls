@@ -28,8 +28,8 @@ import (
 	"github.com/parnurzeal/gorequest"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/future-architect/vuls/config"
-	"github.com/future-architect/vuls/util"
+	"github.com/Veraticus/vuls/config"
+	"github.com/Veraticus/vuls/util"
 	cveconfig "github.com/kotakanbe/go-cve-dictionary/config"
 	cvedb "github.com/kotakanbe/go-cve-dictionary/db"
 	cve "github.com/kotakanbe/go-cve-dictionary/models"
