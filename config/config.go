@@ -240,7 +240,7 @@ func (s ServerInfo) IsContainer() bool {
 
 // IsLocal checks whether this Server is the localhost
 func (s ServerInfo) IsLocal() bool {
-	return s.ServerName == "localhost" || s.ServerName == "127.0.0.1"
+	return s.Host == "localhost" || s.Host == "127.0.0.1"
 }
 
 // SetContainer set container
