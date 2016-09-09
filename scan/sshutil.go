@@ -165,11 +165,11 @@ func execute(c conf.ServerInfo, cmd string, sudo bool, log ...*logrus.Entry) (re
 }
 
 func localExec(c conf.ServerInfo, cmd string, sudo bool) (result sshResult) {
-	result.Servername = c.ServerName
-	result.Host = c.Host
-	result.Port = c.Port
+	parts := strings.Fields(cmd)
+  command := parts[0]
+  arguments := parts[1:len(parts)]
 
-	execCmd := exec.Command(cmd)
+	execCmd := exec.Command(command, arguments...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	execCmd.Stdout = &stdoutBuf
@@ -191,7 +191,10 @@ func localExec(c conf.ServerInfo, cmd string, sudo bool) (result sshResult) {
 
 	result.Stdout = stdoutBuf.String()
 	result.Stderr = stderrBuf.String()
-	result.Cmd = strings.Replace(cmd, "\n", "", -1)
+	result.Servername = c.ServerName
+	result.Host = c.Host
+	result.Port = c.Port
+	result.Cmd = fmt.Sprintf("%s %s", command, strings.Join(arguments, " "))
 
 	return
 }

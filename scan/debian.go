@@ -278,7 +278,7 @@ func (o *debian) fillCandidateVersion(packs []models.PackageInfo) ([]models.Pack
 			select {
 			case pack := <-reqChan:
 				func(p models.PackageInfo) {
-					cmd := fmt.Sprintf("LANG=en_US.UTF-8 apt-cache policy %s", p.Name)
+					cmd := fmt.Sprintf("apt-cache policy %s", p.Name)
 					r := o.execute(cmd, sudo)
 					if !r.isSuccess() {
 						errChan <- fmt.Errorf("Failed to SSH: %s.", r)
@@ -316,7 +316,7 @@ func (o *debian) fillCandidateVersion(packs []models.PackageInfo) ([]models.Pack
 }
 
 func (o *debian) GetUpgradablePackNames() (packNames []string, err error) {
-	cmd := util.PrependProxyEnv("LANG=en_US.UTF-8 apt-get upgrade --dry-run")
+	cmd := util.PrependProxyEnv("apt-get upgrade --dry-run")
 	r := o.execute(cmd, sudo)
 	if r.isSuccess(0, 1) {
 		return o.parseAptGetUpgrade(r.Stdout)
